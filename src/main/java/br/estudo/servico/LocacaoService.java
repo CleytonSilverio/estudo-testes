@@ -18,11 +18,15 @@ public class LocacaoService {
 	
 	private LocacaoDao dao;
 	private SerasaService serasa;
-	private EmailService emailService;
+//	private EmailService emailService;
 	
 	public Locacao alugarFilme(Usuario usuario, List<Filme> filmes) throws FilmeSemEstoqueException, LocadoraException {
 		if(usuario == null) {
 			throw new LocadoraException("Usuario vazio");
+		}
+		
+		if(serasa.possuiNegativacao(usuario)) {
+			throw new LocadoraException("Usuário negativado!");
 		}
 		
 		if(filmes == null || filmes.isEmpty()) {
@@ -35,9 +39,6 @@ public class LocacaoService {
 			}
 		}
 		
-		if(serasa.possuiNegativacao(usuario)) {
-			throw new LocadoraException("Usuário negativado!");
-		}
 		
 		Locacao locacao = new Locacao();
 		locacao.setFilmes(filmes);
@@ -71,25 +72,17 @@ public class LocacaoService {
 		return locacao;
 	}
 	
-	public void notificarAtraso() {
-		List<Locacao> locacoes = dao.obterLocacoesPendentes();
-		for (Locacao locacao: locacoes) {
-			if(locacao.getDataRetorno().before(new Date())) {
-				emailService.notificarAtraso(locacao.getUsuario());
-			}
-		}
-	}
-	
-	public void setEmailService(EmailService email) {
-		emailService = email;
-	}
-	
-	public void setLocacaoDao(LocacaoDao dao) {
-		this.dao = dao;
-	}
-	
-	public void setSerasa(SerasaService spc) {
-		serasa = spc;
-	}
+//	public void notificarAtraso() {
+//		List<Locacao> locacoes = dao.obterLocacoesPendentes();
+//		for (Locacao locacao: locacoes) {
+//			if(locacao.getDataRetorno().before(new Date())) {
+//				emailService.notificarAtraso(locacao.getUsuario());
+//			}
+//		}
+//	}
+//	
+//	public void setEmailService(EmailService email) {
+//		emailService = email;
+//	}
 	
 }

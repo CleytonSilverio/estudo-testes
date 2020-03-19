@@ -13,7 +13,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import br.estudo.dao.LocacaoDao;
 import br.estudo.entidade.Filme;
@@ -25,7 +27,15 @@ import br.estudo.exception.LocadoraException;
 @RunWith(Parameterized.class)
 public class CalculoValorLocacaoTest {
 
+	@InjectMocks
 	private LocacaoService service;
+	
+	@Mock
+	private SerasaService serasa;
+	@Mock
+	private LocacaoDao dao;
+	@Mock
+	private EmailService email;
 
 	@Parameter
 	public List<Filme> filmes;
@@ -38,11 +48,7 @@ public class CalculoValorLocacaoTest {
 
 	@Before
 	public void setup() {
-		service = new LocacaoService();
-		LocacaoDao dao = Mockito.mock(LocacaoDao.class);
-		service.setLocacaoDao(dao);
-		SerasaService serasa = Mockito.mock(SerasaService.class);
-		service.setSerasa(serasa);
+		MockitoAnnotations.initMocks(this);
 	}
 
 	private static Filme filme1 = new Filme("Filme 1", 2, 4.0);
