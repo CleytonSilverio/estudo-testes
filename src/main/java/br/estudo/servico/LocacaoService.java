@@ -18,6 +18,7 @@ public class LocacaoService {
 	
 	private LocacaoDao dao;
 	private SerasaService serasa;
+	private EmailService emailService;
 	
 	public Locacao alugarFilme(Usuario usuario, List<Filme> filmes) throws FilmeSemEstoqueException, LocadoraException {
 		if(usuario == null) {
@@ -68,6 +69,19 @@ public class LocacaoService {
 		dao.salvar(locacao);
 		
 		return locacao;
+	}
+	
+	public void notificarAtraso() {
+		List<Locacao> locacoes = dao.obterLocacoesPendentes();
+		for (Locacao locacao: locacoes) {
+			if(locacao.getDataRetorno().before(new Date())) {
+				emailService.notificarAtraso(locacao.getUsuario());
+			}
+		}
+	}
+	
+	public void setEmailService(EmailService email) {
+		emailService = email;
 	}
 	
 	public void setLocacaoDao(LocacaoDao dao) {

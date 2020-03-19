@@ -32,6 +32,8 @@ public class LocacaoServiceTeste {
 private LocacaoService service;
 
 	private SerasaService serasa;
+	private LocacaoDao dao;
+	private EmailService email;
 	
 	@Rule
 	public ErrorCollector error = new ErrorCollector();
@@ -42,10 +44,12 @@ private LocacaoService service;
 	@Before
 	public void setup(){
 		service = new LocacaoService();
-		LocacaoDao dao = Mockito.mock(LocacaoDao.class);
+		dao = Mockito.mock(LocacaoDao.class);
 		service.setLocacaoDao(dao);
 		serasa = Mockito.mock(SerasaService.class);
 		service.setSerasa(serasa);
+		email = Mockito.mock(EmailService.class);
+		service.setEmailService(email);
 	}
 	
 	@Test
@@ -130,5 +134,21 @@ private LocacaoService service;
 		
 		//acao
 		service.alugarFilme(usuario, filmes);
+	}
+	
+	@Test
+	public void deveEnviarEmailAtrasado() {
+		//Se criar uma builder este metodo funciona :)
+		//cenario
+		//List<Locacao> locacoes = Arrays.asList(locacaoBuilder().umaLocacao().comDataRetorno(obterDataComDiferencaDias(-2).agora());
+		//Mockito.when(dao.obterLocacoesPendentes()).thenReturn(locacoes);
+		//acao
+		//service.notificarAtraso();
+		//verificacao
+		//Mockito.verify(email).notificarAtraso(usuario);
+		//Mockito.verify(email, Mockito.never()).notificarAtraso(usuario2);
+		//Mockito.verifyNoMoreInteractions(email);
+		
+		
 	}
 }
