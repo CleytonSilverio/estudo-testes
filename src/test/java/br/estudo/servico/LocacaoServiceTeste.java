@@ -1,95 +1,134 @@
 package br.estudo.servico;
 
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
+import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ErrorCollector;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
+import br.estudo.dao.LocacaoDao;
 import br.estudo.entidade.Filme;
 import br.estudo.entidade.Locacao;
 import br.estudo.entidade.Usuario;
 import br.estudo.exception.FilmeSemEstoqueException;
 import br.estudo.exception.LocadoraException;
+import br.estudo.matchers.MeusMatchers;
 import br.estudo.util.DataUtils;
 
 public class LocacaoServiceTeste {
 	
-	private LocacaoService service;
-	private Usuario usuario;
-	private Filme filme;
-	private Locacao locacao;
+private LocacaoService service;
 
+	private SerasaService serasa;
+	
 	@Rule
 	public ErrorCollector error = new ErrorCollector();
+	
 	@Rule
 	public ExpectedException exception = ExpectedException.none();
-
+	
 	@Before
-	public void before() {
-		// cenário
-		filme = new Filme("filme 1.", 2, 4.00);
+	public void setup(){
 		service = new LocacaoService();
-		usuario = new Usuario("usuario 1");
+		LocacaoDao dao = Mockito.mock(LocacaoDao.class);
+		service.setLocacaoDao(dao);
+		serasa = Mockito.mock(SerasaService.class);
+		service.setSerasa(serasa);
 	}
-
+	
 	@Test
-	public void testLocacao() throws Exception {
-		// ação
-		locacao = service.alugarFilme(usuario, filme);
-
-		// verificação
-		error.checkThat(locacao.getValor(), CoreMatchers.is(CoreMatchers.equalTo(4.00)));
-		error.checkThat(DataUtils.isMesmaData(locacao.getDataLocacao(), new Date()), CoreMatchers.is(true));
-		error.checkThat(DataUtils.isMesmaData(locacao.getDataRetorno(), DataUtils.obterDataComDiferencaDias(1)), CoreMatchers.is(true));
-
+	public void deveAlugarFilme() throws Exception {
+		Assume.assumeFalse(DataUtils.verificarDiaSemana(new Date(), Calendar.SATURDAY));
+		
+		//cenario
+		Usuario usuario = new Usuario("Usuario 1");
+		List<Filme> filmes = Arrays.asList(new Filme("Filme 1", 1, 5.0));
+		
+		//acao
+		Locacao locacao = service.alugarFilme(usuario, filmes);
+			
+		//verificacao
+		error.checkThat(locacao.getValor(), is(equalTo(5.0)));
+		error.checkThat(locacao.getDataLocacao(), MeusMatchers.eHoje());
+		error.checkThat(locacao.getDataRetorno(), MeusMatchers.eHojeComDiferencaDias(1));
 	}
+	
 	@Test(expected = FilmeSemEstoqueException.class)
-	public void testLocacao_filmeSemEstouqe_1() throws Exception {
-		filme = new Filme("filme 1", 0, 4.00);
-		service.alugarFilme(usuario, filme);
+	public void naoDeveAlugarFilmeSemEstoque() throws Exception{
+		//cenario
+		Usuario usuario = new Usuario("Usuario 1");
+		List<Filme> filmes = Arrays.asList(new Filme("Filme 1", 0, 4.0));
+		
+		//acao
+		service.alugarFilme(usuario, filmes);
 	}
+	
 	@Test
-	public void testLocacao_filmeSemEstouqe_2() {
-		filme = new Filme("filme 1", 0, 4.00);
+	public void naoDeveAlugarFilmeSemUsuario() throws FilmeSemEstoqueException{
+		//cenario
+		List<Filme> filmes = Arrays.asList(new Filme("Filme 1", 1, 5.0));
+		
+		//acao
 		try {
-			service.alugarFilme(usuario, filme);
-		} catch (Exception e) {
-			Assert.assertThat(e.getMessage(), CoreMatchers.is("Filme sem estoque!"));
-		}
-	}
-	@Test
-	public void testLocacao_filmeSemEstouqe_3() throws Exception {
-		// cenário
-		filme = new Filme("filme 1", 0, 4.00);
-		exception.expect(Exception.class);
-		exception.expectMessage("Filme sem estoque!");
-		// ação
-		service.alugarFilme(usuario, filme);
-
-	}
-
-	@Test
-	public void testLocacao_usuarioVazio() throws Exception {
-		try {
-			service.alugarFilme(null, filme);
-			fail();
+			service.alugarFilme(null, filmes);
+			Assert.fail();
 		} catch (LocadoraException e) {
-			Assert.assertThat(e.getMessage(), CoreMatchers.is("Usuário vazio!"));
+			assertThat(e.getMessage(), is("Usuario vazio"));
 		}
-		System.out.println("Forma robusta");
 	}
 
 	@Test
-	public void testLocacao_filmeVazio() throws Exception {
-		exception.expect(Exception.class);
-		exception.expectMessage("Filme vazio!");
+	public void naoDeveAlugarFilmeSemFilme() throws FilmeSemEstoqueException, LocadoraException{
+		//cenario
+		Usuario usuario = new Usuario("Usuario 1");
+		
+		exception.expect(LocadoraException.class);
+		exception.expectMessage("Filme vazio");
+		
+		//acao
 		service.alugarFilme(usuario, null);
+	}
+	
+	@Test
+	public void deveDevolverNaSegundaAoAlugarNoSabado() throws FilmeSemEstoqueException, LocadoraException{
+		Assume.assumeTrue(DataUtils.verificarDiaSemana(new Date(), Calendar.SATURDAY));
+		
+		//cenario
+		Usuario usuario = new Usuario("Usuario 1");
+		List<Filme> filmes = Arrays.asList(new Filme("Filme 1", 1, 5.0));
+		
+		//acao
+		Locacao retorno = service.alugarFilme(usuario, filmes);
+		
+		//verificacao
+		assertThat(retorno.getDataRetorno(), MeusMatchers.caiNumaSegunda());
+		
+	}
+	
+	@Test
+	public void naoDeveAlugarFilmeNegativado() throws FilmeSemEstoqueException, LocadoraException{
+		//cenario
+		Usuario usuario = new Usuario("Usuario 1");
+		List<Filme> filmes = Arrays.asList(new Filme("Filme 1", 1, 5.0));
+		
+		Mockito.when(serasa.possuiNegativacao(usuario)).thenReturn(true);
+		
+		exception.expect(LocadoraException.class);
+		exception.expectMessage("Usuário negativado!");
+		
+		//acao
+		service.alugarFilme(usuario, filmes);
 	}
 }
