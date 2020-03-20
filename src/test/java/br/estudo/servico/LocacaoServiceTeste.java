@@ -155,4 +155,12 @@ public class LocacaoServiceTeste {
 //		
 //		
 //	}
+	
+	@Test
+	public void deveTratarErroSpc() {
+		Usuario usuario = new Usuario();
+		usuario.setNome("Usuario 1");
+//		List<Filme> filmes = Arrays.asList(umFilme().agora());
+		Mockito.when(serasa.possuiNegativacao(usuario)).thenThrow(new Exception("Falha catastrófica"));
+	}
 }
